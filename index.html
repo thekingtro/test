@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b0f0d" />
+
+  <title>Spotify Song Search</title>
+  <meta
+    name="description"
+    content="Suche nach einem Song und öffne die Suche direkt in Spotify."
+  />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main class="page">
+    <section class="card">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" role="img">
+          <path
+            fill="currentColor"
+            d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.584 14.43a.623.623 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.786-.964a.624.624 0 1 1-.278-1.216c3.81-.87 7.078-.496 9.714 1.116a.624.624 0 0 1 .207.857Zm1.225-2.725a.78.78 0 0 1-1.073.258c-2.688-1.652-6.786-2.13-9.964-1.165a.78.78 0 1 1-.454-1.493c3.634-1.103 8.15-.57 11.234 1.326a.78.78 0 0 1 .257 1.074Zm.105-2.837C14.69 8.953 9.37 8.777 6.292 9.712a.936.936 0 1 1-.544-1.79c3.533-1.073 9.42-.865 13.12 1.332a.936.936 0 0 1-.954 1.614Z"
+          />
+        </svg>
+      </div>
+
+      <p class="eyebrow">Spotify Search</p>
+      <h1>Welchen Song suchst du?</h1>
+      <p class="subtitle">
+        Gib einen Song, Künstler oder beides ein und öffne die Suche direkt in Spotify.
+      </p>
+
+      <form id="searchForm" class="search-form">
+        <label class="sr-only" for="songInput">Song oder Künstler</label>
+
+        <div class="input-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+
+          <input
+            id="songInput"
+            name="query"
+            type="text"
+            autocomplete="off"
+            placeholder="z. B. Daft Punk – Instant Crush"
+            maxlength="120"
+            required
+          />
+        </div>
+
+        <button type="submit">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M8 5v14l11-7L8 5Z"
+            />
+          </svg>
+          Bei Spotify suchen
+        </button>
+      </form>
+
+      <p id="status" class="status" aria-live="polite"></p>
+
+      <p class="hint">
+        Falls dein Browser das Öffnen der Spotify-App blockiert, kannst du die Suche auch im Browser öffnen.
+      </p>
+
+      <a id="webFallback" class="fallback-link" href="#" target="_blank" rel="noopener noreferrer">
+        Spotify im Browser öffnen
+      </a>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
