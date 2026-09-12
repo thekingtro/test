@@ -1,92 +1,1212 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0b0f0d" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f7f9" />
+  <meta name="description" content="Ein minimalistischer, offlinefähiger Gewichts-Tracker für dein Training." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="GymTrack" />
+  <title>GymTrack</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-2: #f0f2f5;
+      --text: #16181d;
+      --muted: #6f7580;
+      --line: #e6e8ec;
+      --accent: #3157d5;
+      --accent-weak: #edf1ff;
+      --danger: #c73333;
+      --danger-weak: #fff0f0;
+      --shadow: 0 8px 30px rgba(21, 28, 39, 0.06);
+      --radius: 18px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
 
-  <title>Spotify Song Search</title>
-  <meta
-    name="description"
-    content="Suche nach einem Song und öffne die Suche direkt in Spotify."
-  />
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
 
-  <link rel="stylesheet" href="style.css" />
+    .app-shell {
+      width: min(760px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 0 16px calc(100px + var(--safe-bottom));
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: max(14px, env(safe-area-inset-top)) 0 12px;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--text);
+      display: grid;
+      place-items: center;
+      box-shadow: var(--shadow);
+      flex: 0 0 auto;
+    }
+    .brand-mark svg { width: 22px; height: 22px; }
+    .brand-copy { min-width: 0; }
+    .brand-title { margin: 0; font-size: 18px; line-height: 1.15; letter-spacing: -0.02em; }
+    .brand-subtitle { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 2px 12px rgba(21, 28, 39, 0.03);
+    }
+    .icon-btn:active { transform: scale(0.98); }
+    .icon-btn svg { width: 20px; height: 20px; }
+
+    .view { display: none; }
+    .view.active { display: block; animation: fadeIn .18s ease; }
+    @keyframes fadeIn { from { opacity: .5; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+    .hero { padding: 18px 2px 18px; }
+    .hero h2 { margin: 0; font-size: 29px; line-height: 1.1; letter-spacing: -0.035em; }
+    .hero p { margin: 9px 0 0; color: var(--muted); max-width: 52ch; }
+
+    .empty-state {
+      margin-top: 18px;
+      padding: 34px 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .empty-icon {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 16px;
+      border-radius: 18px;
+      background: var(--surface-2);
+      display: grid;
+      place-items: center;
+    }
+    .empty-icon svg { width: 28px; height: 28px; }
+    .empty-state h3 { margin: 0; font-size: 19px; }
+    .empty-state p { margin: 8px auto 18px; color: var(--muted); max-width: 42ch; }
+
+    .list { display: grid; gap: 10px; }
+    .device-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 18px rgba(21, 28, 39, 0.035);
+      text-align: left;
+    }
+    .device-main { min-width: 0; cursor: pointer; }
+    .device-name { font-weight: 700; font-size: 17px; letter-spacing: -0.015em; }
+    .device-meta { margin-top: 6px; color: var(--muted); font-size: 13px; }
+    .set-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .pill {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: #3f444e;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .device-actions { display: flex; gap: 6px; }
+    .tiny-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 0;
+      background: transparent;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+    .tiny-btn:hover { background: var(--surface-2); }
+    .tiny-btn svg { width: 19px; height: 19px; }
+
+    .fab {
+      position: fixed;
+      right: max(20px, calc((100vw - 760px) / 2 + 20px));
+      bottom: calc(20px + var(--safe-bottom));
+      z-index: 35;
+      border: 0;
+      border-radius: 17px;
+      background: var(--text);
+      color: white;
+      padding: 14px 17px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 750;
+      box-shadow: 0 14px 30px rgba(14, 17, 24, 0.23);
+      cursor: pointer;
+    }
+    .fab svg { width: 20px; height: 20px; }
+    .fab:active { transform: scale(.985); }
+
+    .back-row { display: flex; align-items: center; gap: 10px; padding-top: 8px; }
+    .back-row .icon-btn { width: 38px; height: 38px; box-shadow: none; }
+    .detail-head { padding: 18px 2px 14px; }
+    .detail-head h2 { margin: 0; font-size: 28px; letter-spacing: -0.035em; }
+    .detail-head p { margin: 7px 0 0; color: var(--muted); }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 0 14px; }
+    .stat-card {
+      padding: 15px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+    .stat-label { color: var(--muted); font-size: 12px; }
+    .stat-value { margin-top: 5px; font-size: 22px; font-weight: 800; letter-spacing: -0.025em; }
+
+    .primary-btn, .secondary-btn, .danger-btn {
+      border-radius: 14px;
+      padding: 12px 15px;
+      border: 1px solid transparent;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    .primary-btn { background: var(--text); color: #fff; }
+    .secondary-btn { background: var(--surface); border-color: var(--line); }
+    .danger-btn { background: var(--danger-weak); color: var(--danger); border-color: #ffd9d9; }
+    .primary-btn:active, .secondary-btn:active, .danger-btn:active { transform: scale(.99); }
+
+    .wide { width: 100%; }
+
+    .section-card {
+      margin-top: 12px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(21, 28, 39, 0.03);
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 16px 16px 10px;
+    }
+    .section-head h3 { margin: 0; font-size: 16px; }
+    .section-head small { color: var(--muted); }
+
+    .chart-wrap { padding: 0 12px 14px; }
+    .chart-toolbar { display: flex; gap: 6px; padding: 0 4px 10px; }
+    .seg-btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .seg-btn.active { background: var(--accent-weak); color: var(--accent); border-color: #d9e1ff; font-weight: 700; }
+    #progressChart { width: 100%; height: 230px; display: block; overflow: visible; }
+    .chart-empty { color: var(--muted); padding: 20px 4px 26px; text-align: center; }
+
+    .history-list { padding: 0 10px 10px; }
+    .history-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 13px 6px;
+      border-top: 1px solid var(--line);
+    }
+    .history-item:first-child { border-top: 0; }
+    .history-date { font-weight: 750; }
+    .history-sets { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .history-actions { display: flex; gap: 2px; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(16, 18, 24, 0.36);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+    .modal-backdrop.open { display: flex; animation: fadeBackdrop .15s ease; }
+    @keyframes fadeBackdrop { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      width: min(680px, 100%);
+      max-height: min(88vh, 760px);
+      overflow: auto;
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 18px 16px calc(18px + var(--safe-bottom));
+      box-shadow: 0 -16px 50px rgba(0,0,0,.14);
+      transform-origin: bottom;
+      animation: sheetIn .18s ease;
+    }
+    @keyframes sheetIn { from { transform: translateY(12px); opacity: .7; } to { transform: none; opacity: 1; } }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .modal-head h3 { margin: 0; font-size: 20px; }
+    .modal-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 16px; }
+
+    label { display: block; font-weight: 700; margin: 13px 0 7px; font-size: 13px; }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fbfcfd;
+      border-radius: 13px;
+      padding: 12px 13px;
+      color: var(--text);
+      outline: none;
+    }
+    input:focus, textarea:focus { border-color: #aebcf0; box-shadow: 0 0 0 3px rgba(49, 87, 213, .09); }
+    input[type="number"] { appearance: textfield; }
+    textarea { min-height: 148px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+
+    .set-editor { display: grid; gap: 8px; margin-top: 8px; }
+    .set-row {
+      display: grid;
+      grid-template-columns: 34px 1fr 62px 38px;
+      gap: 8px;
+      align-items: center;
+    }
+    .set-index { width: 34px; height: 34px; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; font-size: 12px; font-weight: 800; color: var(--muted); }
+    .kg-label { color: var(--muted); text-align: center; font-weight: 700; }
+    .remove-set { border: 0; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer; }
+    .add-set-btn { margin-top: 9px; border: 0; background: transparent; color: var(--accent); padding: 8px 2px; font-weight: 750; cursor: pointer; }
+
+    .settings-grid { display: grid; gap: 10px; }
+    .setting-card { padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: #fbfcfd; }
+    .setting-card h4 { margin: 0 0 5px; }
+    .setting-card p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    .setting-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .backup-output { margin-top: 10px; display: none; }
+    .backup-output.visible { display: block; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(86px + var(--safe-bottom));
+      z-index: 200;
+      transform: translateX(-50%) translateY(12px);
+      opacity: 0;
+      pointer-events: none;
+      background: #171a20;
+      color: white;
+      padding: 10px 13px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.22);
+      transition: .18s ease;
+      max-width: calc(100vw - 32px);
+      text-align: center;
+      font-size: 13px;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); }
+    .micro { font-size: 12px; color: var(--muted); }
+
+    @media (min-width: 680px) {
+      .app-shell { padding-left: 22px; padding-right: 22px; }
+      .modal-backdrop { align-items: center; padding: 28px; }
+      .modal { border-radius: 24px; padding: 20px; }
+      .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+  </style>
 </head>
-
 <body>
-  <main class="page">
-    <section class="card">
-      <div class="logo" aria-hidden="true">
-        <svg viewBox="0 0 24 24" role="img">
-          <path
-            fill="currentColor"
-            d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.584 14.43a.623.623 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.786-.964a.624.624 0 1 1-.278-1.216c3.81-.87 7.078-.496 9.714 1.116a.624.624 0 0 1 .207.857Zm1.225-2.725a.78.78 0 0 1-1.073.258c-2.688-1.652-6.786-2.13-9.964-1.165a.78.78 0 1 1-.454-1.493c3.634-1.103 8.15-.57 11.234 1.326a.78.78 0 0 1 .257 1.074Zm.105-2.837C14.69 8.953 9.37 8.777 6.292 9.712a.936.936 0 1 1-.544-1.79c3.533-1.073 9.42-.865 13.12 1.332a.936.936 0 0 1-.954 1.614Z"
-          />
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round">
+            <path d="M4 8v8M7 6v12M17 6v12M20 8v8M7 12h10"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <h1 class="brand-title">GymTrack</h1>
+          <p class="brand-subtitle">Gewichte einfach festhalten</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Einstellungen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.16.36.43.68.78.9.34.22.74.33 1.15.32H21v4h-.1a1.7 1.7 0 0 0-1.5.78Z"/>
         </svg>
+      </button>
+    </header>
+
+    <section class="view active" id="homeView">
+      <div class="hero">
+        <h2>Deine Übungen</h2>
+        <p>Lege Geräte oder Übungen an und halte nach jedem Training deine verwendeten Gewichte fest.</p>
+      </div>
+      <div id="deviceList" class="list"></div>
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 8v8M7 6v12M17 6v12M20 8v8M7 12h10"/>
+          </svg>
+        </div>
+        <h3>Noch keine Übung angelegt</h3>
+        <p>Starte zum Beispiel mit Brustpresse, Beinpresse oder Schulterpresse.</p>
+        <button class="primary-btn" id="emptyAddBtn">Erste Übung hinzufügen</button>
+      </div>
+    </section>
+
+    <section class="view" id="detailView">
+      <div class="back-row">
+        <button class="icon-btn" id="backBtn" aria-label="Zurück">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="muted">Zurück</span>
+      </div>
+      <div class="detail-head">
+        <h2 id="detailTitle">Übung</h2>
+        <p id="detailSubtitle">Verlauf und letzte Werte</p>
       </div>
 
-      <p class="eyebrow">Spotify Search</p>
-      <h1>Welchen Song suchst du?</h1>
-      <p class="subtitle">
-        Gib einen Song, Künstler oder beides ein und öffne die Suche direkt in Spotify.
-      </p>
+      <div class="stats-grid" id="statsGrid"></div>
+      <button class="primary-btn wide" id="addWorkoutBtn">Training eintragen</button>
 
-      <form id="searchForm" class="search-form">
-        <label class="sr-only" for="songInput">Song oder Künstler</label>
-
-        <div class="input-wrap">
-          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-          </svg>
-
-          <input
-            id="songInput"
-            name="query"
-            type="text"
-            autocomplete="off"
-            placeholder="z. B. Daft Punk – Instant Crush"
-            maxlength="120"
-            required
-          />
+      <section class="section-card">
+        <div class="section-head">
+          <div>
+            <h3>Entwicklung</h3>
+            <small>Gewicht pro Training</small>
+          </div>
         </div>
+        <div class="chart-wrap">
+          <div class="chart-toolbar">
+            <button class="seg-btn active" data-mode="max">Max. Gewicht</button>
+            <button class="seg-btn" data-mode="avg">Durchschnitt</button>
+          </div>
+          <svg id="progressChart" viewBox="0 0 640 230" preserveAspectRatio="none" aria-label="Gewichtsverlauf"></svg>
+          <div id="chartEmpty" class="chart-empty hidden">Sobald du mindestens zwei Trainings gespeichert hast, erscheint hier dein Verlauf.</div>
+        </div>
+      </section>
 
-        <button type="submit">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M8 5v14l11-7L8 5Z"
-            />
-          </svg>
-          Bei Spotify suchen
-        </button>
-      </form>
-
-      <p id="status" class="status" aria-live="polite"></p>
-
-      <p class="hint">
-        Falls dein Browser das Öffnen der Spotify-App blockiert, kannst du die Suche auch im Browser öffnen.
-      </p>
-
-      <a id="webFallback" class="fallback-link" href="#" target="_blank" rel="noopener noreferrer">
-        Spotify im Browser öffnen
-      </a>
+      <section class="section-card">
+        <div class="section-head">
+          <div>
+            <h3>Historie</h3>
+            <small>Alle gespeicherten Trainings</small>
+          </div>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
     </section>
   </main>
 
-  <script src="script.js"></script>
+  <button class="fab" id="fabAdd">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span>Übung</span>
+  </button>
+
+  <div class="modal-backdrop" id="exerciseModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle">
+      <div class="modal-head">
+        <div>
+          <h3 id="exerciseModalTitle">Übung hinzufügen</h3>
+          <p>Du kannst den Namen später jederzeit ändern.</p>
+        </div>
+        <button class="icon-btn" data-close="exerciseModal" aria-label="Schließen">×</button>
+      </div>
+      <label for="exerciseName">Name</label>
+      <input id="exerciseName" maxlength="60" placeholder="z. B. Brustpresse" autocomplete="off" />
+      <div class="modal-actions">
+        <button class="secondary-btn" data-close="exerciseModal">Abbrechen</button>
+        <button class="primary-btn" id="saveExerciseBtn">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="workoutModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="workoutModalTitle">
+      <div class="modal-head">
+        <div>
+          <h3 id="workoutModalTitle">Training eintragen</h3>
+          <p id="workoutModalHint">Drei Sätze sind voreingestellt.</p>
+        </div>
+        <button class="icon-btn" data-close="workoutModal" aria-label="Schließen">×</button>
+      </div>
+      <label for="workoutDate">Datum</label>
+      <input type="date" id="workoutDate" />
+      <label>Sätze</label>
+      <div id="setEditor" class="set-editor"></div>
+      <button class="add-set-btn" id="addSetBtn">+ Satz hinzufügen</button>
+      <div class="modal-actions">
+        <button class="secondary-btn" data-close="workoutModal">Abbrechen</button>
+        <button class="primary-btn" id="saveWorkoutBtn">Training speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="exerciseActionsModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div>
+          <h3>Übung verwalten</h3>
+          <p id="exerciseActionsName"></p>
+        </div>
+        <button class="icon-btn" data-close="exerciseActionsModal" aria-label="Schließen">×</button>
+      </div>
+      <div class="settings-grid">
+        <button class="secondary-btn wide" id="renameExerciseBtn">Umbenennen</button>
+        <button class="danger-btn wide" id="deleteExerciseBtn">Übung und Historie löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <div class="modal-head">
+        <div>
+          <h3 id="settingsModalTitle">Einstellungen</h3>
+          <p>Backup, Wiederherstellung und Zurücksetzen.</p>
+        </div>
+        <button class="icon-btn" data-close="settingsModal" aria-label="Schließen">×</button>
+      </div>
+
+      <div class="settings-grid">
+        <div class="setting-card">
+          <h4>Backup-String erstellen</h4>
+          <p>Enthält alle Übungen und Trainingsdaten. Den String kannst du sicher aufbewahren und später wieder einlesen.</p>
+          <div class="setting-actions">
+            <button class="primary-btn" id="createBackupBtn">Backup erzeugen</button>
+            <button class="secondary-btn" id="downloadBackupBtn">Als Datei speichern</button>
+          </div>
+          <div class="backup-output" id="backupOutputWrap">
+            <label for="backupOutput">Backup-String</label>
+            <textarea id="backupOutput" readonly></textarea>
+            <div class="setting-actions">
+              <button class="secondary-btn" id="copyBackupBtn">String kopieren</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <h4>Backup einlesen</h4>
+          <p>Füge einen GymTrack-Backup-String ein. Vorhandene Daten werden vollständig durch das Backup ersetzt.</p>
+          <textarea id="backupInput" placeholder="GYMTRACK1:..."></textarea>
+          <div class="setting-actions">
+            <button class="primary-btn" id="restoreBackupBtn">Backup wiederherstellen</button>
+            <label class="secondary-btn" style="cursor:pointer; display:inline-flex; align-items:center;">
+              Datei wählen
+              <input id="backupFileInput" type="file" accept="application/json,.json,.txt" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <h4>Alles zurücksetzen</h4>
+          <p>Löscht alle Übungen und Trainingsdaten auf diesem Gerät.</p>
+          <button class="danger-btn" id="resetAllBtn">Alle Daten löschen</button>
+        </div>
+
+        <div class="micro">GymTrack speichert deine Daten lokal auf diesem Gerät. Für wichtige Daten empfiehlt sich gelegentlich ein Backup.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const DB_NAME = 'gymtrack-db';
+      const DB_VERSION = 1;
+      const STORE_NAME = 'app';
+      const STATE_KEY = 'state';
+      const BACKUP_PREFIX = 'GYMTRACK1:';
+      const fallbackKey = 'gymtrack-state-v1';
+
+      const defaultState = () => ({
+        version: 1,
+        exercises: [],
+        workouts: []
+      });
+
+      let state = defaultState();
+      let selectedExerciseId = null;
+      let actionExerciseId = null;
+      let editingWorkoutId = null;
+      let setDraft = [null, null, null];
+      let chartMode = 'max';
+      let db = null;
+      let toastTimer = null;
+
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+      const els = {
+        homeView: $('#homeView'),
+        detailView: $('#detailView'),
+        deviceList: $('#deviceList'),
+        emptyState: $('#emptyState'),
+        fabAdd: $('#fabAdd'),
+        settingsBtn: $('#settingsBtn'),
+        detailTitle: $('#detailTitle'),
+        detailSubtitle: $('#detailSubtitle'),
+        statsGrid: $('#statsGrid'),
+        historyList: $('#historyList'),
+        progressChart: $('#progressChart'),
+        chartEmpty: $('#chartEmpty'),
+        exerciseName: $('#exerciseName'),
+        workoutDate: $('#workoutDate'),
+        setEditor: $('#setEditor'),
+        backupOutput: $('#backupOutput'),
+        backupOutputWrap: $('#backupOutputWrap'),
+        backupInput: $('#backupInput'),
+        toast: $('#toast')
+      };
+
+      function uid(prefix = 'id') {
+        if (crypto?.randomUUID) return `${prefix}_${crypto.randomUUID()}`;
+        return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      }
+
+      function todayISO() {
+        const d = new Date();
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 10);
+      }
+
+      function formatDate(iso) {
+        if (!iso) return '–';
+        const [y, m, d] = iso.split('-').map(Number);
+        return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(y, m - 1, d));
+      }
+
+      function formatShortDate(iso) {
+        const [y, m, d] = iso.split('-').map(Number);
+        return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit' }).format(new Date(y, m - 1, d));
+      }
+
+      function formatKg(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return '–';
+        return `${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(n)} kg`;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>'"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[c]));
+      }
+
+      function showToast(message) {
+        clearTimeout(toastTimer);
+        els.toast.textContent = message;
+        els.toast.classList.add('show');
+        toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+      }
+
+      function openModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('open');
+        if (!$$('.modal-backdrop.open').length) document.body.style.overflow = '';
+      }
+
+      function sanitizeState(data) {
+        if (!data || typeof data !== 'object') throw new Error('Ungültige Backup-Daten.');
+        const exercises = Array.isArray(data.exercises) ? data.exercises : [];
+        const workouts = Array.isArray(data.workouts) ? data.workouts : [];
+        const exerciseIds = new Set(exercises.map(x => String(x.id)));
+
+        return {
+          version: 1,
+          exercises: exercises
+            .filter(x => x && x.id && typeof x.name === 'string')
+            .map(x => ({ id: String(x.id), name: x.name.trim().slice(0, 60), createdAt: String(x.createdAt || new Date().toISOString()) }))
+            .filter(x => x.name),
+          workouts: workouts
+            .filter(w => w && w.id && exerciseIds.has(String(w.exerciseId)) && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date)) && Array.isArray(w.sets))
+            .map(w => ({
+              id: String(w.id),
+              exerciseId: String(w.exerciseId),
+              date: String(w.date),
+              sets: w.sets.map(Number).filter(n => Number.isFinite(n) && n >= 0 && n <= 5000),
+              createdAt: String(w.createdAt || new Date().toISOString()),
+              updatedAt: String(w.updatedAt || w.createdAt || new Date().toISOString())
+            }))
+            .filter(w => w.sets.length > 0)
+        };
+      }
+
+      function openDb() {
+        return new Promise((resolve, reject) => {
+          if (!('indexedDB' in window)) return resolve(null);
+          const req = indexedDB.open(DB_NAME, DB_VERSION);
+          req.onupgradeneeded = () => {
+            const database = req.result;
+            if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function loadState() {
+        try {
+          db = await openDb();
+          if (db) {
+            const saved = await new Promise((resolve, reject) => {
+              const tx = db.transaction(STORE_NAME, 'readonly');
+              const req = tx.objectStore(STORE_NAME).get(STATE_KEY);
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+            });
+            if (saved) return sanitizeState(saved);
+          }
+        } catch (err) {
+          console.warn('IndexedDB nicht verfügbar, nutze localStorage.', err);
+        }
+
+        try {
+          const raw = localStorage.getItem(fallbackKey);
+          if (raw) return sanitizeState(JSON.parse(raw));
+        } catch (err) {
+          console.warn('localStorage konnte nicht gelesen werden.', err);
+        }
+        return defaultState();
+      }
+
+      async function persistState() {
+        const clean = sanitizeState(state);
+        state = clean;
+        try {
+          if (db) {
+            await new Promise((resolve, reject) => {
+              const tx = db.transaction(STORE_NAME, 'readwrite');
+              tx.objectStore(STORE_NAME).put(clean, STATE_KEY);
+              tx.oncomplete = resolve;
+              tx.onerror = () => reject(tx.error);
+            });
+            return;
+          }
+        } catch (err) {
+          console.warn('IndexedDB speichern fehlgeschlagen.', err);
+        }
+        localStorage.setItem(fallbackKey, JSON.stringify(clean));
+      }
+
+      function getExercise(id) { return state.exercises.find(x => x.id === id); }
+      function workoutsFor(id) {
+        return state.workouts
+          .filter(w => w.exerciseId === id)
+          .sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt));
+      }
+      function latestWorkout(id) { return workoutsFor(id)[0] || null; }
+      function maxOfWorkout(w) { return w ? Math.max(...w.sets.map(Number)) : 0; }
+      function avgOfWorkout(w) { return w ? w.sets.reduce((a, b) => a + Number(b), 0) / w.sets.length : 0; }
+
+      function showHome() {
+        selectedExerciseId = null;
+        els.detailView.classList.remove('active');
+        els.homeView.classList.add('active');
+        els.fabAdd.classList.remove('hidden');
+        renderHome();
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+
+      function showDetail(id) {
+        if (!getExercise(id)) return;
+        selectedExerciseId = id;
+        els.homeView.classList.remove('active');
+        els.detailView.classList.add('active');
+        els.fabAdd.classList.add('hidden');
+        renderDetail();
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+
+      function renderHome() {
+        const exercises = [...state.exercises].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        els.emptyState.classList.toggle('hidden', exercises.length > 0);
+        els.deviceList.innerHTML = exercises.map(exercise => {
+          const last = latestWorkout(exercise.id);
+          const pills = last ? last.sets.map((v, i) => `<span class="pill">S${i + 1} · ${escapeHtml(formatKg(v))}</span>`).join('') : '';
+          return `
+            <article class="device-card" data-exercise-id="${escapeHtml(exercise.id)}">
+              <div class="device-main" data-open-exercise="${escapeHtml(exercise.id)}">
+                <div class="device-name">${escapeHtml(exercise.name)}</div>
+                <div class="device-meta">${last ? `Zuletzt ${escapeHtml(formatDate(last.date))}` : 'Noch kein Training gespeichert'}</div>
+                ${last ? `<div class="set-pills">${pills}</div>` : ''}
+              </div>
+              <div class="device-actions">
+                <button class="tiny-btn" data-quick-workout="${escapeHtml(exercise.id)}" aria-label="Training eintragen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+                <button class="tiny-btn" data-exercise-actions="${escapeHtml(exercise.id)}" aria-label="Übung verwalten">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+                </button>
+              </div>
+            </article>`;
+        }).join('');
+      }
+
+      function renderDetail() {
+        const exercise = getExercise(selectedExerciseId);
+        if (!exercise) return showHome();
+        const workouts = workoutsFor(exercise.id);
+        const latest = workouts[0] || null;
+        const best = workouts.length ? Math.max(...workouts.map(maxOfWorkout)) : 0;
+        const lastMax = latest ? maxOfWorkout(latest) : 0;
+
+        els.detailTitle.textContent = exercise.name;
+        els.detailSubtitle.textContent = latest ? `Zuletzt trainiert am ${formatDate(latest.date)}` : 'Noch kein Training gespeichert';
+        els.statsGrid.innerHTML = `
+          <div class="stat-card"><div class="stat-label">Letztes Max.</div><div class="stat-value">${latest ? escapeHtml(formatKg(lastMax)) : '–'}</div></div>
+          <div class="stat-card"><div class="stat-label">Bestwert</div><div class="stat-value">${workouts.length ? escapeHtml(formatKg(best)) : '–'}</div></div>
+          <div class="stat-card"><div class="stat-label">Trainings</div><div class="stat-value">${workouts.length}</div></div>
+          <div class="stat-card"><div class="stat-label">Letzte Sätze</div><div class="stat-value">${latest ? latest.sets.length : '–'}</div></div>
+        `;
+
+        els.historyList.innerHTML = workouts.length ? workouts.map(w => `
+          <div class="history-item">
+            <div>
+              <div class="history-date">${escapeHtml(formatDate(w.date))}</div>
+              <div class="history-sets">${w.sets.map((v, i) => `S${i + 1}: ${escapeHtml(formatKg(v))}`).join(' · ')}</div>
+            </div>
+            <div class="history-actions">
+              <button class="tiny-btn" data-edit-workout="${escapeHtml(w.id)}" aria-label="Eintrag bearbeiten">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+              </button>
+              <button class="tiny-btn" data-delete-workout="${escapeHtml(w.id)}" aria-label="Eintrag löschen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg>
+              </button>
+            </div>
+          </div>`).join('') : '<div class="chart-empty">Noch keine Trainings vorhanden.</div>';
+        renderChart();
+      }
+
+      function renderChart() {
+        const workouts = workoutsFor(selectedExerciseId).slice().sort((a, b) => a.date.localeCompare(b.date));
+        els.progressChart.innerHTML = '';
+        const enough = workouts.length >= 2;
+        els.progressChart.classList.toggle('hidden', !enough);
+        els.chartEmpty.classList.toggle('hidden', enough);
+        if (!enough) return;
+
+        const values = workouts.map(w => chartMode === 'avg' ? avgOfWorkout(w) : maxOfWorkout(w));
+        let min = Math.min(...values);
+        let max = Math.max(...values);
+        if (min === max) { min = Math.max(0, min - 5); max += 5; }
+        const pad = Math.max(2.5, (max - min) * 0.16);
+        min = Math.max(0, min - pad);
+        max += pad;
+
+        const W = 640, H = 230, L = 46, R = 16, T = 16, B = 38;
+        const cw = W - L - R, ch = H - T - B;
+        const x = i => L + (workouts.length === 1 ? cw / 2 : (i / (workouts.length - 1)) * cw);
+        const y = v => T + (1 - (v - min) / (max - min)) * ch;
+        const ns = 'http://www.w3.org/2000/svg';
+        const add = (name, attrs, text) => {
+          const el = document.createElementNS(ns, name);
+          Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+          if (text != null) el.textContent = text;
+          els.progressChart.appendChild(el);
+          return el;
+        };
+
+        for (let i = 0; i < 4; i++) {
+          const gy = T + (i / 3) * ch;
+          const val = max - (i / 3) * (max - min);
+          add('line', { x1: L, y1: gy, x2: W - R, y2: gy, stroke: '#e7e9ee', 'stroke-width': 1 });
+          add('text', { x: L - 8, y: gy + 4, 'text-anchor': 'end', fill: '#7a808a', 'font-size': 11 }, new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(val));
+        }
+
+        const points = values.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+        add('polyline', { points, fill: 'none', stroke: '#3157d5', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+
+        values.forEach((v, i) => {
+          add('circle', { cx: x(i), cy: y(v), r: 5, fill: '#fff', stroke: '#3157d5', 'stroke-width': 3 });
+        });
+
+        const labelIndexes = new Set([0, workouts.length - 1]);
+        if (workouts.length > 3) labelIndexes.add(Math.floor((workouts.length - 1) / 2));
+        [...labelIndexes].sort((a,b) => a-b).forEach(i => {
+          add('text', { x: x(i), y: H - 10, 'text-anchor': i === 0 ? 'start' : i === workouts.length - 1 ? 'end' : 'middle', fill: '#7a808a', 'font-size': 11 }, formatShortDate(workouts[i].date));
+        });
+      }
+
+      function renderSetEditor() {
+        els.setEditor.innerHTML = setDraft.map((value, i) => `
+          <div class="set-row">
+            <div class="set-index">${i + 1}</div>
+            <input type="number" inputmode="decimal" min="0" max="5000" step="0.5" data-set-index="${i}" placeholder="Gewicht" value="${value == null ? '' : escapeHtml(value)}" />
+            <div class="kg-label">kg</div>
+            <button class="remove-set" data-remove-set="${i}" aria-label="Satz entfernen">×</button>
+          </div>`).join('');
+      }
+
+      function openExerciseCreate(name = '') {
+        actionExerciseId = null;
+        els.exerciseName.value = name;
+        $('#exerciseModalTitle').textContent = 'Übung hinzufügen';
+        $('#saveExerciseBtn').dataset.mode = 'create';
+        openModal('exerciseModal');
+        setTimeout(() => els.exerciseName.focus(), 60);
+      }
+
+      function openExerciseRename(id) {
+        const exercise = getExercise(id);
+        if (!exercise) return;
+        actionExerciseId = id;
+        els.exerciseName.value = exercise.name;
+        $('#exerciseModalTitle').textContent = 'Übung umbenennen';
+        $('#saveExerciseBtn').dataset.mode = 'rename';
+        closeModal('exerciseActionsModal');
+        openModal('exerciseModal');
+        setTimeout(() => { els.exerciseName.focus(); els.exerciseName.select(); }, 60);
+      }
+
+      function openWorkoutEditor(workoutId = null) {
+        const exercise = getExercise(selectedExerciseId);
+        if (!exercise) return;
+        editingWorkoutId = workoutId;
+        const w = workoutId ? state.workouts.find(x => x.id === workoutId) : null;
+        $('#workoutModalTitle').textContent = w ? 'Training bearbeiten' : 'Training eintragen';
+        $('#saveWorkoutBtn').textContent = w ? 'Änderungen speichern' : 'Training speichern';
+        const last = latestWorkout(selectedExerciseId);
+        $('#workoutModalHint').textContent = w
+          ? 'Passe Datum oder Satzgewichte an.'
+          : last
+            ? `Letztes Training: ${last.sets.map((v, i) => `S${i + 1} ${formatKg(v)}`).join(' · ')}`
+            : 'Drei Sätze sind voreingestellt.';
+        els.workoutDate.value = w?.date || todayISO();
+        setDraft = w ? [...w.sets] : [null, null, null];
+        renderSetEditor();
+        openModal('workoutModal');
+      }
+
+      async function saveExercise() {
+        const name = els.exerciseName.value.trim();
+        if (!name) return showToast('Bitte einen Namen eingeben.');
+        const duplicate = state.exercises.some(x => x.name.toLocaleLowerCase('de') === name.toLocaleLowerCase('de') && x.id !== actionExerciseId);
+        if (duplicate) return showToast('Diese Übung gibt es bereits.');
+
+        if ($('#saveExerciseBtn').dataset.mode === 'rename') {
+          const exercise = getExercise(actionExerciseId);
+          if (exercise) exercise.name = name;
+          showToast('Übung umbenannt.');
+        } else {
+          const newExercise = { id: uid('ex'), name, createdAt: new Date().toISOString() };
+          state.exercises.push(newExercise);
+          showToast('Übung hinzugefügt.');
+        }
+        await persistState();
+        closeModal('exerciseModal');
+        actionExerciseId = null;
+        renderHome();
+        if (selectedExerciseId) renderDetail();
+      }
+
+      async function saveWorkout() {
+        const date = els.workoutDate.value;
+        const values = $$('[data-set-index]', els.setEditor).map(inp => inp.value === '' ? null : Number(String(inp.value).replace(',', '.'))).filter(v => v != null);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return showToast('Bitte ein Datum auswählen.');
+        if (!values.length) return showToast('Mindestens ein Gewicht eintragen.');
+        if (values.some(v => !Number.isFinite(v) || v < 0 || v > 5000)) return showToast('Bitte gültige Gewichte eingeben.');
+
+        const sameDate = state.workouts.find(w => w.exerciseId === selectedExerciseId && w.date === date && w.id !== editingWorkoutId);
+        if (sameDate && !confirm(`Für ${formatDate(date)} existiert bereits ein Eintrag. Soll er ersetzt werden?`)) return;
+
+        const now = new Date().toISOString();
+        if (editingWorkoutId) {
+          const w = state.workouts.find(x => x.id === editingWorkoutId);
+          if (w) { w.date = date; w.sets = values; w.updatedAt = now; }
+        } else if (sameDate) {
+          sameDate.sets = values;
+          sameDate.updatedAt = now;
+        } else {
+          state.workouts.push({ id: uid('wo'), exerciseId: selectedExerciseId, date, sets: values, createdAt: now, updatedAt: now });
+        }
+
+        await persistState();
+        closeModal('workoutModal');
+        editingWorkoutId = null;
+        renderDetail();
+        renderHome();
+        showToast('Training gespeichert.');
+      }
+
+      async function deleteWorkout(id) {
+        const w = state.workouts.find(x => x.id === id);
+        if (!w) return;
+        if (!confirm(`Eintrag vom ${formatDate(w.date)} wirklich löschen?`)) return;
+        state.workouts = state.workouts.filter(x => x.id !== id);
+        await persistState();
+        renderDetail();
+        renderHome();
+        showToast('Eintrag gelöscht.');
+      }
+
+      async function deleteExercise(id) {
+        const exercise = getExercise(id);
+        if (!exercise) return;
+        if (!confirm(`„${exercise.name}“ inklusive kompletter Historie löschen?`)) return;
+        state.exercises = state.exercises.filter(x => x.id !== id);
+        state.workouts = state.workouts.filter(w => w.exerciseId !== id);
+        await persistState();
+        closeModal('exerciseActionsModal');
+        if (selectedExerciseId === id) showHome(); else renderHome();
+        showToast('Übung gelöscht.');
+      }
+
+      function encodeBackup(data) {
+        const json = JSON.stringify({
+          format: 'GymTrack',
+          backupVersion: 1,
+          exportedAt: new Date().toISOString(),
+          data: sanitizeState(data)
+        });
+        const bytes = new TextEncoder().encode(json);
+        let binary = '';
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        return BACKUP_PREFIX + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      }
+
+      function decodeBackup(text) {
+        const cleaned = String(text || '').trim();
+        if (!cleaned) throw new Error('Kein Backup eingegeben.');
+
+        if (cleaned.startsWith(BACKUP_PREFIX)) {
+          const payload = cleaned.slice(BACKUP_PREFIX.length).replace(/-/g, '+').replace(/_/g, '/');
+          const padded = payload + '='.repeat((4 - payload.length % 4) % 4);
+          const binary = atob(padded);
+          const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+          const obj = JSON.parse(new TextDecoder().decode(bytes));
+          if (obj?.format !== 'GymTrack' || !obj.data) throw new Error('Unbekanntes Backup-Format.');
+          return sanitizeState(obj.data);
+        }
+
+        const obj = JSON.parse(cleaned);
+        if (obj?.format === 'GymTrack' && obj.data) return sanitizeState(obj.data);
+        return sanitizeState(obj);
+      }
+
+      function createBackup() {
+        const text = encodeBackup(state);
+        els.backupOutput.value = text;
+        els.backupOutputWrap.classList.add('visible');
+        els.backupOutput.scrollTop = 0;
+        showToast('Backup erstellt.');
+      }
+
+      async function restoreBackup(text) {
+        let restored;
+        try { restored = decodeBackup(text); }
+        catch (err) { return showToast(err.message || 'Backup konnte nicht gelesen werden.'); }
+
+        const count = restored.exercises.length;
+        if (!confirm(`Backup mit ${count} Übung${count === 1 ? '' : 'en'} laden? Deine aktuellen Daten werden ersetzt.`)) return;
+        state = restored;
+        await persistState();
+        selectedExerciseId = null;
+        renderHome();
+        showHome();
+        els.backupInput.value = '';
+        closeModal('settingsModal');
+        showToast('Backup wiederhergestellt.');
+      }
+
+      function downloadBackup() {
+        const payload = {
+          format: 'GymTrack',
+          backupVersion: 1,
+          exportedAt: new Date().toISOString(),
+          data: sanitizeState(state)
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gymtrack-backup-${todayISO()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('Backup-Datei erstellt.');
+      }
+
+      async function copyBackup() {
+        if (!els.backupOutput.value) createBackup();
+        try {
+          await navigator.clipboard.writeText(els.backupOutput.value);
+          showToast('Backup-String kopiert.');
+        } catch {
+          els.backupOutput.focus();
+          els.backupOutput.select();
+          document.execCommand('copy');
+          showToast('Backup-String kopiert.');
+        }
+      }
+
+      async function resetAll() {
+        if (!confirm('Wirklich alle Übungen und Trainingsdaten löschen?')) return;
+        if (!confirm('Letzte Bestätigung: Dieser Schritt kann ohne Backup nicht rückgängig gemacht werden.')) return;
+        state = defaultState();
+        await persistState();
+        closeModal('settingsModal');
+        showHome();
+        showToast('Alle Daten wurden gelöscht.');
+      }
+
+      function wireEvents() {
+        $('#fabAdd').addEventListener('click', () => openExerciseCreate());
+        $('#emptyAddBtn').addEventListener('click', () => openExerciseCreate());
+        $('#settingsBtn').addEventListener('click', () => openModal('settingsModal'));
+        $('#backBtn').addEventListener('click', showHome);
+        $('#addWorkoutBtn').addEventListener('click', () => openWorkoutEditor());
+        $('#saveExerciseBtn').addEventListener('click', saveExercise);
+        $('#saveWorkoutBtn').addEventListener('click', saveWorkout);
+        $('#addSetBtn').addEventListener('click', () => {
+          setDraft.push(null);
+          renderSetEditor();
+          const inputs = $$('[data-set-index]', els.setEditor);
+          inputs[inputs.length - 1]?.focus();
+        });
+        $('#renameExerciseBtn').addEventListener('click', () => openExerciseRename(actionExerciseId));
+        $('#deleteExerciseBtn').addEventListener('click', () => deleteExercise(actionExerciseId));
+        $('#createBackupBtn').addEventListener('click', createBackup);
+        $('#copyBackupBtn').addEventListener('click', copyBackup);
+        $('#downloadBackupBtn').addEventListener('click', downloadBackup);
+        $('#restoreBackupBtn').addEventListener('click', () => restoreBackup(els.backupInput.value));
+        $('#resetAllBtn').addEventListener('click', resetAll);
+
+        $('#backupFileInput').addEventListener('change', async e => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            const text = await file.text();
+            els.backupInput.value = text;
+            await restoreBackup(text);
+          } finally {
+            e.target.value = '';
+          }
+        });
+
+        els.exerciseName.addEventListener('keydown', e => { if (e.key === 'Enter') saveExercise(); });
+
+        document.addEventListener('click', e => {
+          const close = e.target.closest('[data-close]');
+          if (close) closeModal(close.dataset.close);
+
+          const open = e.target.closest('[data-open-exercise]');
+          if (open) showDetail(open.dataset.openExercise);
+
+          const quickWorkout = e.target.closest('[data-quick-workout]');
+          if (quickWorkout) {
+            selectedExerciseId = quickWorkout.dataset.quickWorkout;
+            showDetail(selectedExerciseId);
+            openWorkoutEditor();
+          }
+
+          const actions = e.target.closest('[data-exercise-actions]');
+          if (actions) {
+            actionExerciseId = actions.dataset.exerciseActions;
+            const ex = getExercise(actionExerciseId);
+            $('#exerciseActionsName').textContent = ex?.name || '';
+            openModal('exerciseActionsModal');
+          }
+
+          const edit = e.target.closest('[data-edit-workout]');
+          if (edit) openWorkoutEditor(edit.dataset.editWorkout);
+
+          const del = e.target.closest('[data-delete-workout]');
+          if (del) deleteWorkout(del.dataset.deleteWorkout);
+
+          const removeSet = e.target.closest('[data-remove-set]');
+          if (removeSet) {
+            const idx = Number(removeSet.dataset.removeSet);
+            if (setDraft.length <= 1) return showToast('Mindestens ein Satz bleibt erhalten.');
+            setDraft.splice(idx, 1);
+            renderSetEditor();
+          }
+
+          const seg = e.target.closest('.seg-btn');
+          if (seg) {
+            chartMode = seg.dataset.mode;
+            $$('.seg-btn').forEach(b => b.classList.toggle('active', b === seg));
+            renderChart();
+          }
+        });
+
+        els.setEditor.addEventListener('input', e => {
+          const inp = e.target.closest('[data-set-index]');
+          if (!inp) return;
+          const i = Number(inp.dataset.setIndex);
+          setDraft[i] = inp.value === '' ? null : Number(inp.value);
+        });
+
+        $$('.modal-backdrop').forEach(backdrop => {
+          backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(backdrop.id); });
+        });
+      }
+
+      async function init() {
+        state = await loadState();
+        wireEvents();
+        renderHome();
+
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+          navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service Worker konnte nicht registriert werden.', err));
+        }
+      }
+
+      init();
+    })();
+  </script>
 </body>
 </html>
